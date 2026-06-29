@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" style="max-width:520px; margin: 60px auto;">
+  <div style="text-align: center; margin-bottom: 20px;">
+    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #7c5cff, #22c55e); border-radius: 12px; display: grid; place-items: center; margin: 0 auto 10px; font-weight: 800; font-size: 1.5em; color: white;">M</div>
+    <h3 class="card-title" style="margin: 0; font-size: 1.8em;">Myriota Login</h3>
+    <p class="muted" style="margin-top: 5px;">Acces securizat pentru profesori</p>
+  </div>
+
+  {% if error %}
+    <p style="background: rgba(239, 68, 68, 0.1); color: #ffb4b4; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.2);">{{ error }}</p>
+  {% endif %}
+
+  <form class="form" method="post" action="{{ url_for('web.login_post') }}" autocomplete="on">
+    <div>
+      <label>Email</label>
+      <input
+        name="email"
+        type="email"
+        placeholder="ex: profesor@myriota.ro"
+        value="{{ request.form.get('email','') }}"
+        required
+        autocomplete="username"
+        class="persist-input-style"
+        style="background-color: var(--input-bg, #181827); color: var(--input-text, #f3f3f3);"
+      >
+    </div>
+
+    <div style="margin-top: 15px;">
+      <label>Parolă</label>
+      <input
+        type="password"
+        name="password"
+        required
+        autocomplete="current-password"
+        style="background-color: var(--input-bg, #181827); color: var(--input-text, #f3f3f3);"
+      >
+    </div>
+
+    <div class="actions" style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">
+      <button class="btn-primary" type="submit" style="width: 100%; margin: 0;">Conectare</button>
+      <a class="btn-ghost" href="{{ url_for('web.index') }}" style="width: 100%; text-align: center; margin: 0;">Vizitator</a>
+    </div>
+  </form>
+
+  <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+</section>
+<style>
+/* Asigură-te că stilul inputului nu se modifică după ce se introduce un email */
+input.persist-input-style,
+input.persist-input-style:focus,
+input.persist-input-style:active {
+  background-color: var(--input-bg, #181827) !important;
+  color: var(--input-text, #f3f3f3) !important;
+  border-color: var(--border, #373453) !important;
+  transition: none;
+}
+</style>
+{% endblock %}

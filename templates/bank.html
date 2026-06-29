@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <section class="card" style="padding: 15px 20px;">
+    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+      <h3 class="card-title" style="margin: 0; font-size: 1.1em;">🔖 Filtrele tale:</h3>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        {% if saved_filters %}
+          {% for f in saved_filters %}
+            {% set is_active = (f['q'] == q and f['subject'] == subject and f['level'] == level and ((f['fav_only'] == 1 and fav) or (f['fav_only'] == 0 and not fav))) %}
+            <div class="filter-pill {{ 'active' if is_active else 'inactive' }}">
+              <a href="{{ url_for('web.bank', q=f['q'], subject=f['subject'], level=f['level'], fav='1' if f['fav_only'] else '') }}" style="color: white; text-decoration: none; margin-right: 8px;">
+                {{ f["name"] }}
+              </a>
+              <button type="button" data-id="{{ f['id'] }}" data-name="{{ f['name'] }}" onclick="deleteSavedFilter(this)" title="Șterge filtrul" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 1.2em; padding: 0; line-height: 1;">×</button>
+            </div>
+          {% endfor %}
+        {% else %}
+          <span class="muted" style="font-size: 0.9em;">Nu ai filtre salvate încă.</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3 class="card-title">Banca de probleme</h3>
+        <p class="muted">Folosește filtrele de mai jos pentru a găsi probleme. Poți apoi genera teste rapide sau exerciții asemănătoare.</p>
+      </div>
+      <!-- butonul 'Export Tot' a fost eliminat -->
+    </div>
+
+    <form class="form" method="get" action="{{ url_for('web.bank') }}">
+      <div class="row3">
+        <div>
+          <label>Caută după cuvinte-cheie</label>
+          <input name="q" value="{{ q }}" placeholder="ex: ecuație, vectori, integrale...">
+        </div>
+        <div>
+          <label>Materie</label>
+          <select name="subject">
+            <option value="">(toate materiile)</option>
+            {% for s in subjects %}
+              <option value="{{s}}" {% if s == subject %}selected{% endif %}>{{s}}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Nivel</label>
+          <select name="level">
+            <option value="">(toate nivelele)</option>
+            {% for l in levels %}
+              <option value="{{l}}" {% if l == level %}selected{% endif %}>{{l}}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>Favorite</label>
+          <select name="fav">
+            <option value="">toate</option>
+            <option value="1" {% if fav %}selected{% endif %}>doar favorite</option>
+          </select>
+        </div>
+        <div class="actions" style="justify-content:flex-end; align-self:end">
+          <button class="btn-primary" type="submit">🔍 Caută probleme</button>
+          <a class="btn-ghost" href="{{ url_for('web.bank') }}">Resetează filtrele</a>
+        </div>
+      </div>
+    </form>
+    
+    {% if q or subject or level or fav %}
+    <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+    <form class="form" method="post" action="{{ url_for('web.save_filter') }}">
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="subject" value="{{ subject }}">
+        <input type="hidden" name="level" value="{{ level }}">
+        {% if fav %}<input type="hidden" name="fav" value="1">{% else %}<input type="hidden" name="fav" value="">{% endif %}
+        <div class="row2">
+          <input type="text" name="filter_name" value="{{ suggested_filter_name }}" placeholder="Numează filtrul salvat">
+          <button class="btn-primary" type="submit">💾 Salvează filtrul</button>
+        </div>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="card" style="border: 1px solid rgba(124,92,255,.5);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+
+      <div style="flex: 1 1 320px; min-width:240px; max-width:500px;">
+        <h3 class="card-title" style="color: #7c5cff;">✨ Creează un test rapid (AI + probleme proprii)</h3>
+        <p class="muted" style="margin: 0; font-size: 0.9em;">
+          Completează automat cu probleme asemănătoare acolo unde nu ai suficiente deja în bancă.
+        </p>
+      </div>
+
+      <form method="post"
+            action="{{ url_for('web.export_smart_test') }}"
+            target="downloadFrame"
+            class="download-form"
+            style="flex: 1 1 340px; min-width:340px; max-width:480px; display: flex; flex-direction: column; gap: 6px;">
+
+        <div style="display: flex; gap: 14px; width:100%; align-items: flex-end;">
+          <div style="flex:1;">
+            <label style="font-size: 0.8em; color: var(--muted);">Dificultate</label>
+            <select name="difficulty" style="padding: 6px 10px; width:100%;">
+              <option value="ușoară">Ușor</option>
+              <option value="medie" selected>Mediu</option>
+              <option value="greu">Greu</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size: 0.8em; color: var(--muted);">Număr de variante</label>
+            <input type="number" name="num_tests" value="1" min="1" max="5" style="padding: 6px 10px; width:100%;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size: 0.8em; color: var(--muted);">Număr probleme / test</label>
+            <input type="number" name="problems_per_test" value="4" min="1" max="20" style="padding: 6px 10px; width:100%;">
+          </div>
+        </div>
+
+        <input type="hidden" name="subject" value="{{ subject }}">
+        <input type="hidden" name="level" value="{{ level }}">
+        <input type="hidden" name="q" value="{{ q }}">
+
+        <div style="text-align: right; margin-top: 4px;">
+          <button class="btn-primary" type="submit"
+                  style="background: linear-gradient(135deg, #7c5cff, #22c55e); border: none; padding: 8px 16px;">
+            🪄 Creează test
+          </button>
+        </div>
+      </form>
+    </div>
+    {% if not subject or not level %}
+      <div style="margin-top: 10px; color: #ef4444; font-size: 0.85em;">
+        ⚠️ Selectează <b>o materie</b> și <b>un nivel</b> pentru a putea crea un test.
+      </div>
+    {% endif %}
+  </section>
+
+  {% if rows %}
+  <form method="post"
+      action="{{ url_for('web.generate_similar') }}"
+      target="_self"
+      class="download-form">
+    <div class="actions" style="margin-bottom: 15px;">
+      <!-- butonul Exportă Selecția a fost eliminat -->
+      <button class="btn-primary" type="submit"
+        formaction="{{ url_for('web.generate_similar') }}"
+        formtarget="_self">
+  ✨ Creează probleme asemănătoare cu cele selectate
+</button>
+      <button class="btn-ghost btn-hover" type="button" onclick="toggleAll(true)">Selectează toate</button>
+      <button class="btn-ghost btn-hover" type="button" onclick="toggleAll(false)">Deselectează toate</button>
+      <style>
+        .btn-hover {
+          transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+        }
+        .btn-hover:hover, .btn-hover:focus {
+          background: rgba(124,92,255,0.13);
+          color: var(--accent);
+          box-shadow: 0 2px 10px rgba(124,92,255,0.10);
+          outline: none;
+        }
+        .btn-hover:active {
+          background: rgba(34,197,94,0.10);
+          color: var(--accent2);
+          box-shadow: 0 0 0 2px var(--accent2) inset;
+        }
+      </style>
+    </div>
+
+    <section class="listgrid">
+      {% for r in rows %}
+      <div class="card" data-card style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div class="meta" style="display: flex; justify-content: space-between;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" name="ids" value="{{ r['id'] }}" checked style="width:16px; height:16px;">
+              <span class="pill">{{ r["subject"] }} | {{ r["level"] }}</span>
+            </label>
+            <span class="badge {{ r['source'] }}">{{ r["source"] }}</span>
+          </div>
+          <div class="problem-text" style="margin-top: 12px;">{{ r["text_display"] }}</div>
+        </div>
+        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+          <small class="muted">#{{ r["id"] }} | {{ r["difficulty"] }}</small>
+          <div class="actions">
+            <button type="button" class="fav-btn {% if r['is_fav'] == 1 %}active{% endif %}" data-id="{{ r['id'] }}" onclick="toggleFav(this)">★</button>
+            <button type="button" onclick="deleteProblem(this)" data-id="{{ r['id'] }}" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1em;">🗑️</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </section>
+  </form>
+  
+  {% else %}
+  <div class="card" style="text-align: center; padding: 40px;"><p class="muted">Nu am găsit probleme. Încearcă cu alte filtre sau creează probleme noi.</p></div>
+  {% endif %}
+</div>
+
+<script>
+function toggleAll(s){ document.querySelectorAll('input[name="ids"]').forEach(c => c.checked = s); }
+async function deleteProblem(b){
+  if(!confirm("Ștergi această problemă din bancă?")) return;
+  const r = await fetch("/api/delete_problem", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:b.dataset.id})});
+  if((await r.json()).ok) b.closest("[data-card]").remove();
+}
+async function toggleFav(b){
+  const r = await fetch("/api/toggle_favorite", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:b.dataset.id})});
+  const d = await r.json();
+  if(d.ok) b.classList.toggle("active", d.favorite);
+}
+async function deleteSavedFilter(b){
+  const r = await fetch("/api/delete_saved_filter", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:b.dataset.id})});
+  if((await r.json()).ok) window.location.reload();
+}
+</script>
+{% endblock %}

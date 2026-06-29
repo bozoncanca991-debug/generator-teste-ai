@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Myriota | Sistem Inteligent STEM</title>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=20260315) }}">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+  
+  <style>
+    /* Mic reglaj pentru logo-ul Myriota */
+    .logo {
+        user-select: none;
+        transition: transform 0.3s ease;
+    }
+    .topbar:hover .logo {
+        transform: rotate(-5deg) scale(1.05);
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">M</div> 
+      <div>
+        <div class="brand-title" style="font-size: 1.5em; letter-spacing: 1px;">MYRIOTA</div>
+        <div class="brand-sub">AI-Powered STEM Problem Generator</div>
+      </div>
+    </div>
+    <span class="pill" style="border-color: var(--accent); color: var(--accent);">
+  AI Powered
+</span>
+    <nav class="nav">
+      {% if g.user %}
+        <a class="navlink" href="{{ url_for('web.index') }}">Generare</a>
+        <a class="navlink" href="{{ url_for('web.bank') }}">Banca de probleme</a>
+        <a class="navlink" href="{{ url_for('web.stats') }}">Statistici</a>
+        {% if g.user["role"] == "admin" %}
+          <a class="navlink" href="{{ url_for('web.admin_users') }}">Admin</a>
+        {% endif %}
+        <span class="pill userpill" style="border-color: var(--accent);">
+          {{ g.user["email"].split('@')[0] }} • {{ g.user["role"] }}
+        </span>
+        <a class="navlink" href="{{ url_for('web.logout') }}" style="color: var(--danger);">Logout</a>
+      {% else %}
+        <a class="navbtn" href="{{ url_for('web.login') }}">Login Profesori</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+    <div class="loading-panel" role="status" aria-live="polite">
+      <div class="loading-head">
+        <div class="loading-title">Myriota procesează solicitarea...</div>
+        <div class="loading-sub">Te rugăm să aștepți. Generăm cele mai potrivite exerciții pentru criteriile alese.</div>
+      </div>
+      <div id="skeletonList" class="skeleton-list"></div>
+    </div>
+  </div>
+
+  <div id="confirmOverlay" class="confirm-overlay" aria-hidden="true">
+    <div class="confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="confirm-head">
+        <div id="confirmTitle" class="confirm-title">Confirmare</div>
+        <div id="confirmMessage" class="confirm-message">Ești sigur(ă) că dorești să continui?</div>
+      </div>
+      <div class="confirm-actions">
+        <button type="button" class="btn-ghost" id="confirmCancelBtn">Renunță</button>
+        <button type="button" class="btn-primary" id="confirmOkBtn">Confirmă</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+    
+    <footer class="footer" style="text-align: center; border-top: 1px solid var(--border); padding-top: 20px;">
+      <small class="muted">
+        <b>Myriota</b> • Proiect Disertație &copy; 2026 <br>
+        Tehnologii utilizate: Flask, SQLite, Playwright & LLM (Groq/Gemini/HF)
+      </small>
+    </footer>
+  </main>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false},
+            {left: "\\(", right: "\\)", display: false},
+            {left: "\\[", right: "\\]", display: true}
+          ],
+          throwOnError: false
+        });
+      }
+    });
+  </script>
+
+ <script>
+  (function(){
+    const overlay = document.getElementById("loadingOverlay");
+    const list = document.getElementById("skeletonList");
+    const sub = document.querySelector(".loading-sub");
+    const downloadFrame = document.getElementById("downloadFrame");
+
+    const messages = [
+      "Se caută exerciții relevante...",
+      "Se consultă modelele AI...",
+      "Se organizează exercițiile...",
+      "Se verifică formatul matematic..."
+    ];
+
+    let msgTimer = null;
+    let autoHideTimer = null;
+
+    function hideLoader() {
+      if (!overlay) return;
+
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden", "true");
+
+      if (msgTimer) {
+        clearInterval(msgTimer);
+        msgTimer = null;
+      }
+
+      if (autoHideTimer) {
+        clearTimeout(autoHideTimer);
+        autoHideTimer = null;
+      }
+    }
+
+    function showLoader(count){
+      if (!overlay || !list) return;
+
+      list.innerHTML = "";
+      const c = Math.max(2, Math.min(6, count || 4));
+
+      for (let i = 0; i < c; i++) {
+        const sk = document.createElement("div");
+        sk.className = "skeleton-card";
+        sk.innerHTML = `
+          <div class="skeleton-top">
+            <div class="sk sk-title"></div>
+            <div class="sk sk-badge"></div>
+          </div>
+          <div class="sk sk-line"></div>
+          <div class="sk sk-line short"></div>
+        `;
+        list.appendChild(sk);
+      }
+
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden", "false");
+
+      let idx = 0;
+      if (sub) sub.textContent = messages[0];
+
+      if (msgTimer) clearInterval(msgTimer);
+      msgTimer = setInterval(() => {
+        idx = (idx + 1) % messages.length;
+        if (sub) sub.textContent = messages[idx];
+      }, 3000);
+
+      // fallback de siguranță
+      if (autoHideTimer) clearTimeout(autoHideTimer);
+      autoHideTimer = setTimeout(() => {
+        hideLoader();
+      }, 12000);
+    }
+    function watchDownload(){
+  const timer = setInterval(() => {
+    if(document.cookie.includes("fileDownload=true")){
+        document.cookie = "fileDownload=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        hideLoader();
+        clearInterval(timer);
+    }
+  }, 500);
+}
+    window.addEventListener("pageshow", () => hideLoader());
+
+    if (downloadFrame) {
+      downloadFrame.addEventListener("load", () => {
+        hideLoader();
+        showToast("PDF generat cu succes");
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("form").forEach(f => {
+        f.addEventListener("submit", () => {
+          if (
+            f.action.includes("generate") ||
+            f.action.includes("export") ||
+            f.action.includes("smart_test") ||
+            f.classList.contains("download-form")
+          ) {
+            showLoader(4);
+            watchDownload();
+          }
+        });
+      });
+    });
+
+    window.__showLoader = showLoader;
+    window.__hideLoader = hideLoader;
+  })();
+</script>
+
+  <script>
+    (function(){
+      const overlay = document.getElementById("confirmOverlay");
+      const okBtn = document.getElementById("confirmOkBtn");
+      const cancelBtn = document.getElementById("confirmCancelBtn");
+      let onConfirm = null;
+
+      window.showConfirmModal = (message, callback) => {
+        document.getElementById("confirmMessage").textContent = message;
+        onConfirm = callback;
+        overlay.classList.add("show");
+      };
+
+      const close = () => overlay.classList.remove("show");
+      cancelBtn.onclick = close;
+      okBtn.onclick = () => { close(); if(onConfirm) onConfirm(); };
+    })();
+  </script>
+  <script>
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    if(!t) return;
+
+    t.textContent = msg;
+    t.classList.add("show");
+    t.setAttribute("aria-hidden", "false");
+
+    setTimeout(() => {
+      t.classList.remove("show");
+      t.setAttribute("aria-hidden", "true");
+    }, 3000);
+  }
+</script>
+<iframe id="downloadFrame" name="downloadFrame" style="display:none;"></iframe>
+<div id="toast" class="toast" aria-hidden="true"></div>
+</body>
+</html>

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="grid">
+  <div class="card">
+    <h3 class="card-title">Creează exerciții noi</h3>
+    <p class="muted">
+      Completează informațiile de mai jos, iar Myriota va genera exerciții potrivite folosind mai multe modele AI: Groq, Gemini și fallback local. <br>
+      <span style="opacity:0.7">Alege criterii relevante pentru a obține exerciții mai utile și specifice.</span>
+    </p>
+
+    <form id="generateForm" class="form" method="post" action="{{ url_for('web.generate') }}">
+      <div class="row2">
+        <div>
+          <label for="subject">Materie</label>
+          <select name="subject" id="subject">
+            <option value="Matematică" {% if subject == "Matematică" or not subject %}selected{% endif %}>Matematică</option>
+            <option value="Informatică" {% if subject == "Informatică" %}selected{% endif %}>Informatică</option>
+            <option value="Fizică" {% if subject == "Fizică" %}selected{% endif %}>Fizică</option>
+          </select>
+        </div>
+        <div>
+          <label for="difficulty">Dificultate</label>
+          <select name="difficulty" id="difficulty">
+            <option value="ușoară" {% if difficulty == "ușoară" %}selected{% endif %}>Ușoară</option>
+            <option value="medie" {% if difficulty == "medie" or not difficulty %}selected{% endif %}>Medie</option>
+            <option value="greu" {% if difficulty == "greu" %}selected{% endif %}>Greu</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label for="level">Clasa / Nivel</label>
+          <select name="level" id="level">
+            <option value="a V-a" {% if level == "a V-a" %}selected{% endif %}>Clasa a V-a</option>
+            <option value="a VI-a" {% if level == "a VI-a" %}selected{% endif %}>Clasa a VI-a</option>
+            <option value="a VII-a" {% if level == "a VII-a" %}selected{% endif %}>Clasa a VII-a</option>
+            <option value="a VIII-a" {% if level == "a VIII-a" or not level %}selected{% endif %}>Clasa a VIII-a</option>
+            <option value="a IX-a" {% if level == "a IX-a" %}selected{% endif %}>Clasa a IX-a</option>
+            <option value="a X-a" {% if level == "a X-a" %}selected{% endif %}>Clasa a X-a</option>
+            <option value="a XI-a" {% if level == "a XI-a" %}selected{% endif %}>Clasa a XI-a</option>
+            <option value="a XII-a" {% if level == "a XII-a" %}selected{% endif %}>Clasa a XII-a</option>
+          </select>
+        </div>
+        <div>
+          <label for="n">Număr exerciții</label>
+          <input name="n" id="n" type="number" min="1" max="30" value="{{ n or 10 }}" placeholder="Număr de exerciții"/>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div style="grid-column: 1 / -1;">
+          <label for="topic">Cuvânt cheie sau subiect specific <span style="font-weight: normal; color: #aaa">(opțional)</span></label>
+          <input name="topic" id="topic" type="text" placeholder="Ex: arbori, limite, polinoame, mecanică..." value="{{ topic or '' }}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: rgba(0,0,0,0.2); color: white;">
+        </div>
+      </div>
+
+      <button class="btn-primary" type="submit" style="margin-top: 10px;">Generează exerciții</button>
+      <div class="hint" style="margin-top: 5px;">
+        <strong>Sfat:</strong> Pentru cost minim, alege 10 exerciții și nu solicita generarea soluțiilor.
+      </div>
+    </form>
+  </div>
+
+  <details class="card subtle" style="cursor: pointer; height: fit-content;">
+    <summary class="card-title" style="margin: 0; outline: none; list-style: none; font-weight: bold;">
+      ℹ️ Cum funcționează? <span style="opacity:0.7">(Click pentru detalii)</span>
+    </summary>
+    <div class="steps" style="margin-top: 15px;">
+      <div class="step"><span class="dot"></span> Completezi criteriile de mai sus: materie, nivel, dificultate, număr de exerciții și opțional, un cuvânt cheie.</div>
+      <div class="step"><span class="dot"></span> AI-ul generează exercițiile pentru tine (sunt randate cu LaTeX acolo unde este necesar).</div>
+      <div class="step"><span class="dot"></span> Apeși <b>Salvează</b> pentru a adăuga exercițiul din listă în banca proprie. Îl poți edita înainte de salvare.</div>
+      <div class="step"><span class="dot"></span> Apeși <b>Elimină</b> pentru a șterge exercițiul din listă, dacă nu te interesează.</div>
+    </div>
+  </details>
+</section>
+
+{% if items %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title">Exerciții generate</h3>
+      <p class="muted">
+        Poți edita exercițiile înainte de a le salva în banca ta. <br>
+        <b>Salvează</b> = adaugă imediat exercițiul în banca personală.
+      </p>
+    </div>
+    <div class="pill">
+      {{ subject }} • {{ level }} • {{ difficulty }} {% if topic %} • "{{ topic }}" {% endif %}
+    </div>
+  </div>
+
+  <input type="hidden" id="ctx-subject" value="{{subject}}">
+  <input type="hidden" id="ctx-level" value="{{level}}">
+  <input type="hidden" id="ctx-difficulty" value="{{difficulty}}">
+
+  <div class="list">
+    {% for src, t in items %}
+    <div class="item" data-item>
+      <div class="item-body" style="grid-column: 1 / -1;">
+        <div class="item-top">
+          <div class="item-title">Exercițiul {{ loop.index }}</div>
+
+          <div class="item-actions">
+            <span class="badge {{src}}">
+  {% if src == "groq" %}Groq{% elif src == "gemini" %}Gemini{% elif src == "hf" %}Hugging Face{% elif src == "local" %}Local{% else %}{{ src }}{% endif %}
+</span>
+            <button type="button" class="btn-mini ok" data-accept>Salvează</button>
+            <button type="button" class="btn-mini no" data-reject>Elimină</button>
+            <button type="button" class="btn-mini edit" data-edit>Editează</button>
+            <span class="status" data-status></span>
+            <span class="status" data-pred></span>
+          </div>
+        </div>
+
+        <div class="text-display" data-display style="padding: 10px; margin-top: 10px; min-height: 40px; font-size: 1.05em; line-height: 1.5;">
+          {{ t }}
+        </div>
+        
+        <textarea class="textedit" data-text style="display: none; width: 100%; margin-top: 10px; min-height: 80px; padding: 10px; font-family: monospace; border-radius: 4px; background: rgba(0,0,0,0.2); color: inherit; border: 1px solid rgba(255,255,255,0.1);" readonly>{{ t }}</textarea>
+        
+        <input type="hidden" value="{{ src }}" data-source>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="actions">
+    <a class="btn-ghost" href="{{ url_for('web.bank') }}">Vezi banca de exerciții</a>
+  </div>
+
+  <script>
+  const ctx = {
+    subject: document.getElementById("ctx-subject").value,
+    level: document.getElementById("ctx-level").value,
+    difficulty: document.getElementById("ctx-difficulty").value
+  };
+
+  async function saveProblem(payload){
+    const res = await fetch("/api/save_problem", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  }
+
+  document.querySelectorAll("[data-item]").forEach(card => {
+    const text = card.querySelector("[data-text]");
+    const display = card.querySelector("[data-display]");
+    const source = card.querySelector("[data-source]").value;
+    const status = card.querySelector("[data-status]");
+    const pred = card.querySelector("[data-pred]");
+    const btnAccept = card.querySelector("[data-accept]");
+    const btnReject = card.querySelector("[data-reject]");
+    const btnEdit = card.querySelector("[data-edit]");
+
+    btnEdit.addEventListener("click", () => {
+      const isEditing = text.style.display === "block";
+
+      if (isEditing) {
+        display.style.display = "block";
+        text.style.display = "none";
+        text.readOnly = true;
+        display.textContent = text.value;
+
+        if (window.renderMathInElement) {
+          renderMathInElement(display, {
+            delimiters: [
+              {left: "$$", right: "$$", display: true},
+              {left: "$", right: "$", display: false},
+              {left: "\\(", right: "\\)", display: false},
+              {left: "\\[", right: "\\]", display: true}
+            ],
+            throwOnError: false
+          });
+        }
+
+        btnEdit.textContent = "Editează";
+        btnAccept.disabled = false;
+      } else {
+        display.style.display = "none";
+        text.style.display = "block";
+        text.readOnly = false;
+        text.focus();
+        btnEdit.textContent = "Previzualizează";
+        btnAccept.disabled = true;
+      }
+    });
+
+    btnReject.addEventListener("click", () => {
+      card.remove();
+    });
+
+    btnAccept.addEventListener("click", async () => {
+      status.textContent = "Se salvează exercițiul...";
+      btnAccept.disabled = true;
+      btnEdit.disabled = true;
+
+      const payload = {
+        subject: ctx.subject,
+        level: ctx.level,
+        difficulty: ctx.difficulty,
+        source: source,
+        text: text.value.trim()
+      };
+
+      try {
+        const r = await saveProblem(payload);
+
+        if (!r.ok) {
+          status.textContent = "Eroare la salvare: " + (r.error || "necunoscută");
+          btnAccept.disabled = false;
+          btnEdit.disabled = false;
+          return;
+        }
+
+        if (r.duplicate) {
+          status.textContent = "Exercițiul există deja în bancă (#" + r.id + ")";
+          showToast("Exercițiul există deja în banca ta");
+        } else if (r.near_duplicate) {
+          status.textContent = "Salvat (#" + r.id + "), dar seamănă cu #" + r.near_duplicate.id;
+          showToast("Salvat, dar seamănă cu un exercițiu deja existent");
+        } else {
+          status.textContent = "Salvat (#" + r.id + ")";
+          showToast("Exercițiul a fost salvat cu succes");
+        }
+
+        if (r.pred_level || r.pred_difficulty) {
+          pred.textContent = ` • Clasificare automată: ${r.pred_level || "-"} / ${r.pred_difficulty || "-"} (încredere: ${r.pred_confidence || "-"})`;
+        }
+
+        text.readOnly = true;
+        btnReject.textContent = "Elimină din listă";
+        setTimeout(() => card.remove(), 1200);
+
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Eroare de rețea";
+        btnAccept.disabled = false;
+        btnEdit.disabled = false;
+      }
+    });
+  });
+</script>
+
+</section>
+{% endif %}
+
+{% endblock %}

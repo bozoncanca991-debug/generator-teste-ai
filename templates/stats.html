@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="card">
+  <h3 class="card-title">Statistici</h3>
+  <p class="muted">Panou de monitorizare pentru activitatea platformei Myriota.</p>
+
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-label">Probleme în bancă</div>
+      <div class="stat-value">{{ summary.problems }}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Generări AI</div>
+      <div class="stat-value">{{ summary.generated }}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Probleme salvate</div>
+      <div class="stat-value">{{ summary.saved }}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Teste inteligente</div>
+      <div class="stat-value">{{ summary.smart_tests }}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Favorite</div>
+      <div class="stat-value">{{ summary.favorites }}</div>
+    </div>
+
+    {% if is_admin %}
+    <div class="stat-card">
+      <div class="stat-label">Utilizatori</div>
+      <div class="stat-value">{{ summary.users }}</div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  {% if is_admin %}
+    <p class="muted">Admin view: agregat pe profesori și acțiuni.</p>
+    <table class="table">
+      <tr><th>Email</th><th>Rol</th><th>Acțiune</th><th>Count</th></tr>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r["email"] }}</td>
+          <td>{{ r["role"] }}</td>
+          <td>{{ r["action"] }}</td>
+          <td>{{ r["cnt"] }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">Activitatea ta.</p>
+    <table class="table">
+      <tr><th>Acțiune</th><th>Count</th></tr>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r["action"] }}</td>
+          <td>{{ r["cnt"] }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</section>
+
+{% endblock %}

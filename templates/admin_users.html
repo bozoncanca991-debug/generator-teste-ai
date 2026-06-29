@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title">Admin • Utilizatori</h3>
+      <p class="muted">Creează conturi de profesori (teacher) sau admin.</p>
+    </div>
+  </div>
+
+  {% if msg %}<p style="color:#b7ffd2">{{ msg }}</p>{% endif %}
+  {% if err %}<p style="color:#ffb4b4">{{ err }}</p>{% endif %}
+
+  <form class="form" method="post" action="{{ url_for('web.admin_users_post') }}" style="margin-top:12px">
+    <div class="row3">
+      <div>
+        <label>Email</label>
+        <input name="email" type="email" placeholder="profesor@liceu.ro" required>
+      </div>
+      <div>
+        <label>Parolă</label>
+        <input name="password" type="text" placeholder="ex: parola123" required>
+      </div>
+      <div>
+        <label>Rol</label>
+        <select name="role">
+          <option value="teacher" selected>teacher</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" type="submit">Creează utilizator</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3 class="card-title">Lista utilizatori</h3>
+  <div class="listgrid">
+    {% for u in users %}
+      <div class="card subtle">
+        <div class="meta" style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div>
+            <div><b>{{ u["email"] }}</b></div>
+            <div class="muted"><small>#{{ u["id"] }} • {{ u["role"] }} • {{ u["created_at"] }}</small></div>
+          </div>
+
+          <form method="post" action="{{ url_for('web.admin_users_delete') }}">
+            <input type="hidden" name="id" value="{{ u['id'] }}">
+            <button class="btn-mini no" type="submit" onclick="return confirm('Ștergi utilizatorul?')">Șterge</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}
