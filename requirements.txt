@@ -4,3 +4,4 @@ reportlab
 google-genai
 playwright
 huggingface_hub
+python-dotenv
