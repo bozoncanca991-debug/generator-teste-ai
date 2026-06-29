@@ -100,7 +100,7 @@ def gen_groq(api_key: str, model: str, subject: str, level: str, difficulty: str
         )
         return _extract_lines(completion.choices[0].message.content)
     except Exception as e:
-        print("GROQ ERROR:", repr(e))
+        print(f"Eroare Groq detaliata: {e}") # Adaugă acest print ca să vezi în CMD ce are
         return []
 
 def gen_hf(token: str, model: str, subject: str, level: str, difficulty: str, n: int, topic: str = "") -> List[str]:
