@@ -5,5 +5,6 @@ set -o errexit
 # Instalează librăriile din Python
 pip install -r requirements.txt
 
-# Descarcă binarul Playwright în folderul local al aplicației, nu în cache-ul global
+# Forțează instalarea browserului în folderul local al proiectului
+export PLAYWRIGHT_BROWSERS_PATH=/opt/render/project/src/.local-browsers
 playwright install chromium
