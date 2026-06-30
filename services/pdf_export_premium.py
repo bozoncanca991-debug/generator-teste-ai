@@ -11,16 +11,11 @@ def _ensure_out_dir(out_path: str):
 def render_pdf_from_html(html: str, out_path: str) -> str:
     _ensure_out_dir(out_path)
     with sync_playwright() as p:
-        # Înlocuiește linia veche de launch cu aceasta:
+        # Înlocuiește linia de launch cu varianta asta stabilă pentru servere:
         browser = p.chromium.launch(
-            headless=True,
-          args=[
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-        ]
-        )
+    headless=True,
+    args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+)
         page = browser.new_page()
 
         page.set_content(html, wait_until="networkidle")
